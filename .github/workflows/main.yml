@@ -1,0 +1,35 @@
+name: 🚀 Auto Deploy to developer.null-safety.com (cPanel)
+
+on:
+  push:
+    branches:
+      - main  # غيّره إذا كنت تعمل على فرع مختلف
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v3
+
+      - name: 📤 Deploy to cPanel via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        with:
+          server: ${{ secrets.FTP_HOST }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftp
+          port: 21
+          local-dir: ./  # المسار المحلي للمشروع
+          server-dir: /public_html/developer.null-safety.com/  # المسار على السيرفر
+          exclude: |
+            **/.git*
+            **/.github/**
+            **/.vscode/**
+            **/tests/**
+            **/tmp/**
+            **/storage/logs/**
+            **/README.md
+            **/*.md
+            **/.env*
