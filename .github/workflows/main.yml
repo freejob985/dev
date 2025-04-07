@@ -13,6 +13,34 @@ jobs:
       - name: 📥 Checkout Code
         uses: actions/checkout@v3
 
+      - name: 📝 Create last-changes.txt
+        run: |
+          echo "🔄 آخر التغييرات في الكوميت الأخير:" > last-changes.txt
+          echo "" >> last-changes.txt
+          git log -1 --pretty=format:"المؤلف: %an <%ae>%nالتاريخ: %ad%n%nالرسالة: %s%n%n" >> last-changes.txt
+          echo "📂 الملفات التي تم تغييرها:" >> last-changes.txt
+          git diff-tree --no-commit-id --name-only -r $(git rev-parse HEAD) >> last-changes.txt
+
+      - name: 📧 Send commit info via email
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: mail.null-safety.com
+          server_port: 465
+          username: git@null-safety.com
+          password: 7onhI_aR+7Um
+          subject: "🚀 تم نشر تحديث جديد إلى الموقع"
+          to: git@null-safety.com
+          from: git@null-safety.com
+          content_type: text/plain
+          body: |
+            ✅ تم نشر الكود بنجاح على السيرفر.
+
+            🔄 تفاصيل الكوميت:
+            ${{ github.event.head_commit.message }}
+
+            🧑‍💻 بواسطة: ${{ github.event.head_commit.author.name }}
+            📅 التاريخ: ${{ github.event.head_commit.timestamp }}
+
       - name: 📤 Deploy to cPanel via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
