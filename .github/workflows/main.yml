@@ -22,7 +22,7 @@ jobs:
           protocol: ftp
           port: 21
           local-dir: ./  # المسار المحلي للمشروع
-          server-dir: /public_html/developer.null-safety.com/  # المسار على السيرفر
+          server-dir: ./  # المسار على السيرفر
           exclude: |
             **/.git*
             **/.github/**
