@@ -3,7 +3,7 @@ name: 🚀 Auto Deploy to developer.null-safety.com (cPanel)
 on:
   push:
     branches:
-      - main  # غيّره إذا كنت تعمل على فرع مختلف
+      - main
 
 jobs:
   deploy:
@@ -13,33 +13,60 @@ jobs:
       - name: 📥 Checkout Code
         uses: actions/checkout@v3
 
-      - name: 📝 Create last-changes.txt
+      - name: 📝 Generate last-changes.txt and file summary
+        id: changes
         run: |
-          echo "🔄 آخر التغييرات في الكوميت الأخير:" > last-changes.txt
+          echo "🔄 Last Commit Changes:" > last-changes.txt
           echo "" >> last-changes.txt
-          git log -1 --pretty=format:"المؤلف: %an <%ae>%nالتاريخ: %ad%n%nالرسالة: %s%n%n" >> last-changes.txt
-          echo "📂 الملفات التي تم تغييرها:" >> last-changes.txt
-          git diff-tree --no-commit-id --name-only -r $(git rev-parse HEAD) >> last-changes.txt
+          git log -1 --pretty=format:"**Author:** %an <%ae>%n**Date:** %ad%n%n**Message:** %s%n" >> last-changes.txt
+          echo "" >> last-changes.txt
+          echo "**Modified / Added / Deleted Files:**" >> last-changes.txt
+          echo "" >> last-changes.txt
+          echo "| Change Type | File Path |" >> last-changes.txt
+          echo "|-------------|-----------|" >> last-changes.txt
 
-      - name: 📧 Send commit info via email
+          changes=""
+          while read status file; do
+            if [ "$status" = "A" ]; then
+              type="🆕 Added"
+            elif [ "$status" = "M" ]; then
+              type="✏️ Modified"
+            elif [ "$status" = "D" ]; then
+              type="❌ Deleted"
+            else
+              type="$status"
+            fi
+            echo "| $type | $file |" >> last-changes.txt
+            changes="$changes\n- $type: \`$file\`"
+          done < <(git diff --name-status HEAD^ HEAD)
+
+          echo "CHANGES<<EOF" >> $GITHUB_ENV
+          echo -e "$changes" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      - name: 📧 Send commit info via email with file list
         uses: dawidd6/action-send-mail@v3
         with:
           server_address: mail.null-safety.com
           server_port: 465
           username: git@null-safety.com
           password: 7onhI_aR+7Um
-          subject: "🚀 تم نشر تحديث جديد إلى الموقع"
+          subject: "🚀 Deployment Notice: New Changes Pushed to Production"
           to: git@null-safety.com
           from: git@null-safety.com
           content_type: text/plain
           body: |
-            ✅ تم نشر الكود بنجاح على السيرفر.
+            ✅ A new version of the code was successfully deployed to the server.
 
-            🔄 تفاصيل الكوميت:
-            ${{ github.event.head_commit.message }}
+            🧾 Commit Summary:
+            Message: ${{ github.event.head_commit.message }}
+            Author: ${{ github.event.head_commit.author.name }} <${{ github.event.head_commit.author.email }}>
+            Date: ${{ github.event.head_commit.timestamp }}
 
-            🧑‍💻 بواسطة: ${{ github.event.head_commit.author.name }}
-            📅 التاريخ: ${{ github.event.head_commit.timestamp }}
+            📄 Files Changed:
+            ${{ env.CHANGES }}
+
+            📎 Attached: last-changes.txt
 
       - name: 📤 Deploy to cPanel via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
@@ -49,8 +76,8 @@ jobs:
           password: ${{ secrets.FTP_PASSWORD }}
           protocol: ftp
           port: 21
-          local-dir: ./  # المسار المحلي للمشروع
-          server-dir: ./  # المسار على السيرفر
+          local-dir: ./  # Project root directory
+          server-dir: ./  # Destination path on server
           exclude: |
             **/.git*
             **/.github/**
