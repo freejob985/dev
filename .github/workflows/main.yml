@@ -52,7 +52,7 @@ jobs:
           username: git@null-safety.com
           password: 7onhI_aR+7Um
           subject: "🚀 Deployment Notice: New Changes Pushed to Production"
-          to: git@null-safety.com
+          to: mr.bean.mg22@gmail.com
           from: git@null-safety.com
           content_type: text/plain
           body: |
